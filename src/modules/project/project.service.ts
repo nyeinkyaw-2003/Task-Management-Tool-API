@@ -1,7 +1,7 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { paginate } from '../../common/helpers/pagination-helper';
-import { PrismaService } from '../prisma/prisma.service';
+import { PrismaService } from '../../prisma/prisma.service';
 import CreateProjectDto from './dto/create-project.dto';
 import GetProjectListDto from './dto/get-project-list.dto';
 import UpdateProjectDto from './dto/update-project.dto';

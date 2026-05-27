@@ -1,8 +1,9 @@
 import { Prisma } from '@prisma/client';
 
 export interface PaginationOptions {
-  page: number;
-  limit: number;
+  page?: number;
+  limit?: number;
+  maxLimit?: number;
 }
 
 export interface PaginationResult<T> {
@@ -12,54 +13,52 @@ export interface PaginationResult<T> {
     limit: number;
     total: number;
     totalPages: number;
-  }
+    hasNextPage: boolean;
+    hasPreviousPage: boolean;
+  };
 }
 
 type PaginationDelegate = {
-  findMany: (args?: any) => Promise<any>;
-  count: (args?: any) => Promise<number>;
+  findMany: (args: any) => Promise<any[]>;
+  count: (args: any) => Promise<number>;
 };
 
-type FindManyArgs<TDelegate extends PaginationDelegate> = Omit<
-  Prisma.Args<TDelegate, 'findMany'>,
-  'skip' | 'take'
->;
+function calculateOffsets(options: PaginationOptions) {
+  const defaultLimit = 10;
+  const absoulateLimit = options.maxLimit || defaultLimit;
 
-type CountWhere<TDelegate extends PaginationDelegate> =
-  Prisma.Args<TDelegate, 'count'> extends { where?: infer TWhere }
-    ? TWhere
-    : never;
+  const page = Math.max(Number(options.page) || 1, 1);
+  const limit = Math.min(Math.max(Number(options.limit) || defaultLimit, 1, absoulateLimit));
+  const skip = (page - 1) * limit;
 
-type FindManyItem<
-  TDelegate extends PaginationDelegate,
-  TArgs extends FindManyArgs<TDelegate>,
-> = Prisma.Result<TDelegate, TArgs, 'findMany'> extends Array<infer TItem>
-  ? TItem
-  : never;
+  return { page, limit, skip };
+}
 
 export async function paginate<
   TDelegate extends PaginationDelegate,
-  TArgs extends FindManyArgs<TDelegate>,
+  TArgs extends Omit<Prisma.Args<TDelegate, "findMany">, 'skip' | 'limit'>
 >(
   model: TDelegate,
   args: TArgs,
-  options: PaginationOptions,
-): Promise<PaginationResult<FindManyItem<TDelegate, TArgs>>> {
-  const page = Math.max(options.page || 1, 1);
-  const limit = Math.min(Math.max(options.limit || 10, 1), 100);
-  const skip = (page - 1) * limit;
+  options: PaginationOptions
+) {
+  const { page, limit, skip } = calculateOffsets(options);
+
+  const orderBy = (args as any)?.orderBy ?? { createdAt: "desc" };
 
   const [data, total] = await Promise.all([
     model.findMany({
+      ...(args as any),
       skip,
       take: limit,
-      ...args,
+      orderBy
     }),
-
     model.count({
-      where: (args as { where?: CountWhere<TDelegate> }).where,
+      where: (args as any).where
     }),
   ]);
+
+  const totalPages = Math.ceil(total / limit);
 
   return {
     data,
@@ -67,7 +66,9 @@ export async function paginate<
       page,
       limit,
       total,
-      totalPages: Math.ceil(total / limit),
+      totalPages,
+      hasNextPage: page < totalPages,
+      hasPreviousPage: page > 1,
     },
   };
 }

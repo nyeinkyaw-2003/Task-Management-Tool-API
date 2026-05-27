@@ -2,14 +2,13 @@ import { BadRequestException, Injectable, NotFoundException } from '@nestjs/comm
 import CreateUserDto from './dto/create-user.dto';
 import UpdateUserDto from './dto/update-user.dto';
 import GetUserListDto from './dto/get-user-list.dto';
-import { PrismaService } from '../prisma/prisma.service';
+import { PrismaService } from '../../prisma/prisma.service';
 import { Prisma } from '@prisma/client';
-import { paginate } from '../../common/helpers/pagination-helper';
-import { buildDateRange } from '../../common/helpers/date-helper';
-import { normalizeSearch } from '../../common/helpers/query-helper';
+import { paginate } from '@/common/helpers/pagination-helper';
 import GetProjectListDto from '../project/dto/get-project-list.dto';
 import { buildProjectWhere } from '../project/project.query';
 import { projectPublicSelect } from '../project/project.select';
+import { buildUserWhere } from './user.query';
 
 const userPublicSelect = {
     id: true,
@@ -25,30 +24,7 @@ export class UserService {
     
     findAll(query: GetUserListDto) {
         const { page, limit, search, startDate, endDate, orderBy } = query;
-        const safeSearchTerm = normalizeSearch(search);
-        const where: Prisma.UserWhereInput = {};
-
-        if (safeSearchTerm) {
-            where.OR = [
-                {
-                    name: {
-                        contains: safeSearchTerm,
-                        mode: 'insensitive',
-                    },
-                },
-                {
-                    email: {
-                        contains: safeSearchTerm,
-                        mode: 'insensitive',
-                    },
-                },
-            ];
-        }
-
-        const createdAt = buildDateRange(startDate, endDate);
-        if (createdAt) {
-            where.createdAt = createdAt;
-        }
+        const where = buildUserWhere(search, startDate, endDate);
 
         return paginate(
             this.prisma.user,
