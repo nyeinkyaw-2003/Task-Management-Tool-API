@@ -55,6 +55,19 @@ export class UserService {
         return user;
     }
 
+    async findByEmail(email: string) {
+        const user = await this.prisma.user.findUnique({
+            where: { email },
+            select: userPublicSelect
+        });
+
+        if (!user) {
+            throw new NotFoundException(`User not found with email ${email}`);
+        }
+
+        return user;
+    }
+
     async findProjects(id: number, query: GetProjectListDto) {
         await this.ensureUserExists(id);
         const { page, limit, orderBy, search } = query;
