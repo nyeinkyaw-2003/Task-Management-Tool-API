@@ -1,12 +1,19 @@
-import { Body, Controller, Delete, Get, Param, ParseIntPipe, Patch, Post, Query, ValidationPipe } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, ParseIntPipe, Patch, Post, Query, UseGuards, ValidationPipe } from '@nestjs/common';
 import { UserService } from './user.service';
 import CreateUserDto from './dto/create-user.dto';
 import UpdateUserDto from './dto/update-user.dto';
 import GetUserListDto from './dto/get-user-list.dto';
 import { ApiResponse } from '../../common/response/api-response';
 import GetProjectListDto from '../project/dto/get-project-list.dto';
+import { JwtAuthGuard } from '../auth/guards/jwt-auth-guard';
+import { CurrentUser } from '../auth/decorator/current-user.decorator';
+import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
+import { AuthUserPayload } from './user.interface';
 
 @Controller('user')
+@ApiTags("User")
+@ApiBearerAuth("jwt-auth")
+@UseGuards(JwtAuthGuard)
 export class UserController {
     constructor(private readonly userService: UserService) {}
 
@@ -17,9 +24,9 @@ export class UserController {
     }
 
     @Get(':id')
-    async getUserById(@Param('id', ParseIntPipe) id: number) {
+    async getUserById(@Param('id', ParseIntPipe) id: number, @CurrentUser() authUser: AuthUserPayload) {
         const user = await this.userService.findOne(id);
-        return ApiResponse.success(user, "User fetched successfully");
+        return ApiResponse.success({user, currentUser: authUser}, "User fetched successfully");
     }
 
     @Get(':id/projects')

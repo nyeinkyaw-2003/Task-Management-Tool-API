@@ -55,15 +55,14 @@ export class UserService {
         return user;
     }
 
-    async findByEmail(email: string) {
+    async findByEmail(email: string, select?: Prisma.UserSelect) {
         const user = await this.prisma.user.findUnique({
             where: { email },
-            select: userPublicSelect
+            select: {
+                ...userPublicSelect,
+                ...select,
+            }
         });
-
-        if (!user) {
-            throw new NotFoundException(`User not found with email ${email}`);
-        }
 
         return user;
     }
