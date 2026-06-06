@@ -8,30 +8,17 @@ export type JwtPayload = {
     email: string;
 }
 
-export type JwtValidateResponse = {
-    id: number;
-    email: string;
-    name: string;
-}
-
 @Injectable()
-export class JwtStrategy extends PassportStrategy(
-  Strategy,
-  "jwt",
-) {
+export class JwtStrategy extends PassportStrategy(Strategy, 'jwt') {
   constructor(private readonly userService: UserService) {
     super({
-      jwtFromRequest:
-        ExtractJwt.fromAuthHeaderAsBearerToken(),
-
-      ignoreExpiration: false,
-
-      secretOrKey:
-        process.env.JWT_ACCESS_SECRET!,
+        jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
+        ignoreExpiration: false,
+        secretOrKey: process.env.JWT_ACCESS_SECRET!
     });
   }
 
-  async validate(payload: JwtPayload): Promise<JwtValidateResponse> {
+  async validate(payload: JwtPayload) {
     const user = await this.userService.findOne(payload.sub);
 
     if (!user) 

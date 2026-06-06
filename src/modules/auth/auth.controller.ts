@@ -1,10 +1,8 @@
-import { Body, Controller, Patch, Post } from '@nestjs/common';
+import { Body, Controller, Post } from '@nestjs/common';
 import { SignUpDto } from './dto/signup-dto';
 import { AuthService } from './auth.service';
 import { SignInDto } from './dto/signin-dto';
 import { ApiResponse } from '@/common/response/api-response';
-import { CurrentUser } from './decorator/current-user.decorator';
-import { AuthUserPayload } from '../user/user.interface';
 
 @Controller('auth')
 export class AuthController {
@@ -31,11 +29,5 @@ export class AuthController {
             refreshToken: data.refreshToken,
             user: data.user
         }, "User signed in successfully");
-    }
-
-    @Patch('/refresh-token')
-    async refreshToken (@CurrentUser() authUser: AuthUserPayload, @Body("refreshToken") refreshToken: string) {
-        const data = await this.authService.refreshToken(authUser, refreshToken);
-        return ApiResponse.success(data, "Token refreshed successfully");
     }
 }

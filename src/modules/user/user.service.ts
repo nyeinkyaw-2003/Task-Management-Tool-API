@@ -14,6 +14,7 @@ const userPublicSelect = {
     id: true,
     name: true,
     email: true,
+    refreshTokens: true,
     createdAt: true,
     updatedAt: true,
 } satisfies Prisma.UserSelect;
