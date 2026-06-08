@@ -45,10 +45,17 @@ export class ProjectService {
     return project;
   }
 
-  async create(project: CreateProjectDto) {
+  async create(userId: number, project: CreateProjectDto) {
     try {
       return await this.prisma.project.create({
-        data: project,
+        data: {
+          ...project,
+          owner: {
+            connect: {
+              id: userId
+            }
+          }
+        },
         select: projectPublicSelect,
       });
     } catch (error) {

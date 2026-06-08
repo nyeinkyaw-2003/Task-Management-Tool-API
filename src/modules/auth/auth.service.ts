@@ -2,8 +2,7 @@ import { ConflictException, Injectable, NotFoundException, UnauthorizedException
 import { UserService } from '../user/user.service';
 import { SignUpDto } from './dto/signup-dto';
 import { SignInDto } from './dto/signin-dto';
-import { JwtService } from "@nestjs/jwt"
-import { JwtPayload } from './strategies/jwt.strategy';
+import { JwtService } from "@nestjs/jwt";
 import * as bcrypt from "bcrypt";
 
 export type SignInResponse = {
@@ -48,7 +47,7 @@ export class AuthService {
             throw new UnauthorizedException('Invalid email or password');
         };
 
-        const tokens = await this.getTokens(user.id, user.email);
+        const tokens = await this.getTokens(user.id, user.name, user.email);
         await this.updateRefreshToken(user.id, tokens.refreshToken);
 
 
@@ -59,24 +58,24 @@ export class AuthService {
         };
     }
 
-    async refreshTokens (userId: number, refreshToken: string) {
+    async refreshToken (userId: number, refreshToken: string) {
         const user = await this.userService.findOne(userId);
-        if (!user || !user.refreshTokens) throw new UnauthorizedException('Access Denied');
+        if (!user || !user.refreshToken) throw new UnauthorizedException('Access Denied');
 
         await this.verifyRefreshToken(refreshToken);
 
-        const matches = await bcrypt.compare(refreshToken, user.refreshTokens);
+        const matches = await bcrypt.compare(refreshToken, user.refreshToken);
         if (!matches) throw new UnauthorizedException('Access Denied');
 
-        const tokens = await this.getTokens(user.id, user.email);
+        const tokens = await this.getTokens(user.id, user.name, user.email);
 
         await this.updateRefreshToken(user.id, tokens.refreshToken);
 
         return tokens;
     }
 
-    private async getTokens (userId: number, email: string) {
-        const payload = {sub: userId, email};
+    private async getTokens (userId: number, name: string, email: string) {
+        const payload = {sub: userId, name, email};
         const [accessToken, refreshToken] = await Promise.all([
             this.jwtService.signAsync(payload, { secret: process.env.JWT_ACCESS_SECRET, expiresIn: '15m' }),
             this.jwtService.signAsync(payload, { secret: process.env.JWT_REFRESH_SECRET, expiresIn: '7d' })

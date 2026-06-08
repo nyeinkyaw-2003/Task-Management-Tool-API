@@ -10,10 +10,10 @@ import { CurrentUser } from '../auth/decorator/current-user.decorator';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { AuthUserPayload } from './user.interface';
 
-@Controller('user')
 @ApiTags("User")
-@ApiBearerAuth("jwt-auth")
+@ApiBearerAuth("jwt")
 @UseGuards(JwtAuthGuard)
+@Controller('user')
 export class UserController {
     constructor(private readonly userService: UserService) {}
 

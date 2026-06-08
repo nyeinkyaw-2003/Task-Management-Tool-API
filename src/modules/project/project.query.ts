@@ -19,13 +19,7 @@ export const buildProjectWhere = (
           contains: safeSearchTerm,
           mode: 'insensitive',
         },
-      },
-      {
-        goal: {
-          contains: safeSearchTerm,
-          mode: 'insensitive',
-        },
-      },
+      }
     ];
   }
 
