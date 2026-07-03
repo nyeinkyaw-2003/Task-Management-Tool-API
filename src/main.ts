@@ -3,6 +3,7 @@ import { AppModule } from './app.module';
 import { NestExpressApplication } from '@nestjs/platform-express';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import * as dotenv from "dotenv";
+import cookieParser from 'cookie-parser';
 import { HttpExceptionFilter } from './common/filters/http-exception-filter';
 import { Logger, ValidationPipe } from '@nestjs/common';
 
@@ -18,6 +19,7 @@ async function bootstrap() {
   const allowedMethods = process.env.ALLOW_METHODS;
   const useCredentials = process.env.CREDENTIALS === 'true';
 
+  app.use(cookieParser(process.env.COOKIE_SECRET));
   app.enableCors({
     origin: clientUrl,
     methods: allowedMethods,
@@ -49,6 +51,11 @@ async function bootstrap() {
       },
       "jwt"
     )
+    .addCookieAuth('refreshToken', {
+      type: 'apiKey',
+      in: 'cookie',
+      name: 'refreshToken'
+    })
     .build();
   const document = SwaggerModule.createDocument(app, config);
   SwaggerModule.setup('api', app, document);

@@ -2,7 +2,7 @@ import { ConflictException, Injectable, NotFoundException, UnauthorizedException
 import { UserService } from '../user/user.service';
 import { SignUpDto } from './dto/signup-dto';
 import { SignInDto } from './dto/signin-dto';
-import { JwtService } from "@nestjs/jwt";
+import { JsonWebTokenError, JwtService, TokenExpiredError } from "@nestjs/jwt";
 import * as bcrypt from "bcrypt";
 
 export type SignInResponse = {
@@ -17,12 +17,12 @@ export type SignInResponse = {
 
 @Injectable()
 export class AuthService {
-    constructor (
+    constructor(
         private readonly userService: UserService,
         private readonly jwtService: JwtService
-    ) {}
+    ) { }
 
-    async signUp (signUpDto: SignUpDto) {
+    async signUp(signUpDto: SignUpDto) {
         const existingUser = await this.userService.findByEmail(signUpDto.email);
         if (existingUser) throw new ConflictException('Email already registered');
 
@@ -34,10 +34,10 @@ export class AuthService {
         });
     }
 
-    async signIn (signInDto: SignInDto): Promise<SignInResponse> {
+    async signIn(signInDto: SignInDto): Promise<SignInResponse> {
         const { email, password } = signInDto;
 
-        const user = await this.userService.findByEmail(email, {password: true});
+        const user = await this.userService.findByEmail(email, { password: true });
         if (!user) {
             throw new UnauthorizedException('Invalid email or password');
         };
@@ -58,7 +58,7 @@ export class AuthService {
         };
     }
 
-    async refreshToken (userId: number, refreshToken: string) {
+    async refreshToken(userId: number, refreshToken: string) {
         const user = await this.userService.findOne(userId);
         if (!user || !user.refreshToken) throw new UnauthorizedException('Access Denied');
 
@@ -74,8 +74,8 @@ export class AuthService {
         return tokens;
     }
 
-    private async getTokens (userId: number, name: string, email: string) {
-        const payload = {sub: userId, name, email};
+    private async getTokens(userId: number, name: string, email: string) {
+        const payload = { id: userId, name, email };
         const [accessToken, refreshToken] = await Promise.all([
             this.jwtService.signAsync(payload, { secret: process.env.JWT_ACCESS_SECRET, expiresIn: '15m' }),
             this.jwtService.signAsync(payload, { secret: process.env.JWT_REFRESH_SECRET, expiresIn: '7d' })
@@ -84,16 +84,28 @@ export class AuthService {
         return { accessToken, refreshToken };
     }
 
-    private async verifyRefreshToken (refreshToken: string) {
+    private async verifyRefreshToken(refreshToken: string) {
         try {
             await this.jwtService.verifyAsync(refreshToken, { secret: process.env.JWT_REFRESH_SECRET });
         } catch (error) {
-            throw new UnauthorizedException('Invalid refresh token');
+            this.handleValidateTokenError(error);
         }
     }
 
-    private async updateRefreshToken (userId: number, refreshToken: string) {
+    private async updateRefreshToken(userId: number, refreshToken: string) {
         const hashRefreshToken = await bcrypt.hash(refreshToken, 10);
         await this.userService.update(userId, { refreshToken: hashRefreshToken });
+    }
+
+    private handleValidateTokenError (error: unknown) {
+        if (error instanceof TokenExpiredError) {
+            throw new UnauthorizedException('Refresh token expired');
+        }
+
+        if (error instanceof JsonWebTokenError) {
+            throw new UnauthorizedException('Invalid refresh token');
+        }
+
+        throw new UnauthorizedException('Authentication failed');
     }
 }

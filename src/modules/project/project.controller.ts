@@ -19,7 +19,7 @@ import { ProjectService } from './project.service';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth-guard';
 import { CurrentUser } from '../auth/decorator/current-user.decorator';
-import { CurrentAuthUser } from '../auth/strategies/jwt.strategy';
+import { CurrentAuthUser } from '../auth/strategies/current-user.class';
 
 @ApiTags('Project')
 @ApiBearerAuth('jwt')
@@ -31,9 +31,9 @@ export class ProjectController {
   @Post()
   async createProject(
     @CurrentUser() currentUser: CurrentAuthUser,
-    @Body(new ValidationPipe({ transform: true })) dto: CreateProjectDto,
+    @Body() dto: CreateProjectDto,
   ) {
-    const project = await this.projectService.create(currentUser.sub, dto);
+    const project = await this.projectService.create(currentUser.id, dto);
     return ApiResponse.success(project, 'Project created successfully');
   }
 
